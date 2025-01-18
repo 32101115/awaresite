@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Inspector Admin - Dashboard</title>
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="vendor/datatables/dataTables.bootstrap4.css" rel="stylesheet">
+    <link href="css/sb-admin.css" rel="stylesheet">
+	<!-- <script src="sweetalert.min.js"></script> -->
+	 <style>
+	.fill {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+		margin: 10px;
+		max-width: 400px;
+		max-height: 400px;
+	}
+	.fill img {
+		flex-shrink: 0;
+		max-width:80%;
+		max-height:80%;
+	}
+	/* Tablet */
+	@media screen and (min-width: 760px) and (max-width: 980px){
+		#mapcanvas {width:400px;height:400px}
+    }
+    /* Mobile HD */
+    @media screen and (min-width: 350px) and (max-width: 760px){
+		#mapcanvas {width:200px;height:200px}
+    }
+    /* Mobile LD */
+    @media screen and (max-width: 350px){
+		#mapcanvas {width:100px;height:100px}
+    }
+    .scrollabletextbox {
+        width:100%;
+        font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+        overflow:scroll;
+        resize: None;
+    }
+    .modal {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0,0,0);
+        background-color: rgba(0,0,0,0.4);
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+	</style>
+</head>
+<body id="page-top">
+    <nav class="navbar navbar-expand navbar-dark bg-dark static-top">
+        <a class="navbar-brand mr-1" href="#">Jobsite Inspector</a>
+    </nav>
+    <div id="wrapper">
+        <!-- Beacon Registration Modal -->
+        <div id="beaconModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeBeaconModal()">&times;</span>
+                <h2>Register Beacon</h2>
+                <form id="beaconForm">
+                    <label for="major">Major:</label>
+                    <input type="number" id="major" name="major" required><br><br>
+                    <label for="x">x in ft:</label>
+                    <input type="number" id="x-position" name="x-position" required><br><br>
+                    <label for="y">y in ft:</label>
+                    <input type="number" id="y-position" name="y-position" required><br><br>
+                    <button type="submit">Register</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Beacon Config Modal -->
+        <div id="beaconConfigModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeBeaconConfigModal()">&times;</span>
+                <h2>Beacon Configuration</h2>
+                <form id="beaconConfigForm">
+                    <label for="offset">Offset:</label>
+                    <input type="number" id="offset" name="offset" required><br><br>
+                    <label for="widthInFeet">width in ft:</label>
+                    <input type="number" id="widthInFeet" name="widthInFeet" required><br><br>
+                    <label for="heightInFeet">height in ft:</label>
+                    <input type="number" id="heightInFeet" name="heightInFeet" required><br><br>
+                    <button type="submit">submit</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Beacon Removal Modal -->
+        <div id="beaconRemovalModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeBeaconRemovalModal()">&times;</span>
+                <h2>Select a Beacon to Remove</h2>
+                <div id="beaconList"></div>
+                <button class="btn btn-danger" onclick="submitBeaconRemoval()">Remove Selected Beacon</button>
+            </div>
+        </div>
+        <!-- Sidebar -->
+        <ul class="sidebar navbar-nav">
+            <li id='nav1' class="nav-item">
+                <a class="nav-link" href='#'>
+                <i class="fas fa-fw fa-map"></i>
+                <span>Tracking</span>
+                </a>
+            </li>
+        </ul>
+        <div id="content-wrapper">
+            <div id='tracking_page' class="container-fluid">
+                <!-- Breadcrumbs-->
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        Dashboard
+                    </li>
+                    <li class="breadcrumb-item active">Tracking</li>
+                </ol>
+
+                <!-- DataTables Example -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="fas fa-table"></i>
+                        Tracking Map
+                    </div>
+                    <div class="card-body">
+                        <select id="floorSelect" class="form-control mb-3">
+                            <option value="">Select a floor</option>
+                        </select>
+                        <button class="btn btn-primary" id="toggleButton" onclick="toggleDrawingMode()">Add Boundary</button>
+                        <button class="btn btn-danger" id="doneButton" onclick="toggleDrawingMode()" style="display: none;">Done</button>
+                        <button class="btn btn-secondary" onclick="removeSelected()">Remove Selected Boundary</button>
+                        <button class="btn btn-info" id="placeBeaconButton" onclick="showBeaconModal()">Place Beacon</button>
+                        <button class="btn btn-secondary" onclick="removeBeacon()">Remove Beacon</button>
+                        <button class="btn btn-info" id="configBeaconButton" onclick="showBeaconConfigModal()">Beacon Configuration</button>
+                        <canvas id="canvas" width="460" height="627" style="border:1px solid #ccc;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /.content-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+    <!-- Bootstrap core JavaScript-->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Core plugin JavaScript-->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <!-- Page level plugin JavaScript-->
+    <script src="vendor/chart.js/Chart.min.js"></script>
+    <script src="vendor/datatables/jquery.dataTables.js"></script>
+    <script src="vendor/datatables/dataTables.bootstrap4.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="vendor/fabric.js/fabric.min.js"></script>
+    <script>
+        const socket = io();
+        const canvas = new fabric.Canvas('canvas');
+        const ctx = canvas.getContext('2d');
+        const ppuPositions = new Map();
+        const ppuColors = new Map();
+        let rectanglesData = [];
+        let isDrawing = false;
+        let isDrawingMode = false;
+        let rect, origX, origY;
+        let clickLeft, clickTop;
+        let allBoundaries = [];
+        let allBeacons = [];
+        let isBeaconPlacementMode = false;
+        let beaconsConfig = {};
+        const canvasWidthInPixels = canvas.getWidth();
+        const canvasHeightInPixels = canvas.getHeight();
+
+        // Function to get a random color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        socket.on('ppuLocationUpdate', function(data) {
+            drawPPU(data);
+        });
+
+        function convertToPixels(x, y, offset, widthInFeet, heightInFeet, canvasWidthInPixels, canvasHeightInPixels) {
+            const feetToPixelsX = canvasWidthInPixels / widthInFeet;
+            const feetToPixelsY = canvasHeightInPixels / heightInFeet;
+            let pixelX = x * feetToPixelsX;
+            let pixelY = y * feetToPixelsY;
+            if (x === 0) {
+                pixelX += offset;
+            } else if (x === widthInFeet) {
+                pixelX -= offset;
+            }
+            if (y === 0) {
+                pixelY += offset;
+            } else if (y === heightInFeet) {
+                pixelY -= offset;
+            }
+            return { pixelX, pixelY };
+        }
+
+        function drawPPU({ ppu_id, pos }) {
+            const { x, y } = pos;
+            const floorSelect = document.getElementById('floorSelect');
+            const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+            if (!ppuColors.has(ppu_id)) {
+                ppuColors.set(ppu_id, getRandomColor());
+            }
+            const { offset, widthInFeet, heightInFeet } = beaconsConfig[selectedFloor] || {};
+            const { pixelX, pixelY } = convertToPixels(x, y, offset, widthInFeet, heightInFeet, canvas.width, canvas.height);
+            // Remove existing objects for this ppu_id if they exist
+            if (ppuPositions.has(ppu_id)) {
+                const { rect, text } = ppuPositions.get(ppu_id);
+                canvas.remove(rect);
+                canvas.remove(text);
+            }
+            // Create a new rectangle and text for the ppu_id
+            const rect = new fabric.Rect({
+                left: pixelX - 10,
+                top: pixelY - 10,
+                fill: ppuColors.get(ppu_id),
+                width: 10,
+                height: 10,
+                selectable: false
+            });
+            const text = new fabric.Text(ppu_id, {
+                left: pixelX,
+                top: pixelY,
+                fontSize: 12,
+                originX: 'center',
+                originY: 'center',
+                fill: 'black',
+                selectable: false
+            });
+            canvas.add(rect);
+            canvas.add(text);
+            ppuPositions.set(ppu_id, { rect, text });
+        }
+        function drawBeacons(leftFeet, topFeet, major, floor) {
+            const { offset, widthInFeet, heightInFeet } = beaconsConfig[floor] || {};
+
+            const { pixelX: left, pixelY: top } = convertToPixels(leftFeet, topFeet, offset, widthInFeet, heightInFeet, canvas.width, canvas.height);
+            const circle = new fabric.Circle({
+                left: left,
+                top: top,
+                radius: 12,
+                fill: 'blue',
+                stroke: 'black',
+                strokeWidth: 1,
+                originX: 'center',
+                originY: 'center',
+                selectable: false,
+                data: { majorid: major }
+            });
+            const text = new fabric.Text(major, {
+                left: left,
+                top: top,
+                fontSize: 12,
+                originX: 'center',
+                originY: 'center',
+                fill: 'white',
+                selectable: false,
+            });
+            canvas.add(circle, text);
+        }
+        function loadImage(imgUrl, callback) {
+            fabric.Image.fromURL(imgUrl, function(img) {
+                img.scaleToWidth(canvas.width);
+                img.scaleToHeight(canvas.height);
+                img.set({
+                    left: (canvas.width - img.getScaledWidth()) / 2,
+                    top: (canvas.height - img.getScaledHeight()) / 2,
+                    selectable: false
+                });
+                canvas.setBackgroundImage(img, () => {
+                    if (callback) callback();
+                });
+            }, { crossOrigin: 'anonymous' });
+        }
+        function fetchData() {
+            return Promise.all([
+                fetch('/floors').then(response => response.json()),
+                fetch('/boundaries').then(response => response.json()),
+                fetch('/beacons').then(response => response.json())
+            ]);
+        }
+        function fetchBeaconsConfig() {
+            return fetch('/beacons_config')
+                .then(response => response.json())
+                .then(configs => {
+                    // Assuming each floor has its own config
+                    configs.forEach(config => {
+                        beaconsConfig[config.floor] = config;
+                    });
+                })
+                .catch(error => console.error('Error fetching beacons config:', error));
+        }
+        function initialize() {
+            fetchBeaconsConfig()
+                .then(() => {
+                    return fetchData(); // Ensure fetchData returns a Promise
+                })
+                .then(([floors, boundaries, beacons]) => {
+                    allBoundaries = boundaries;
+                    allBeacons = beacons;
+                    const floorSelect = document.getElementById('floorSelect');
+                    floors.forEach(floor => {
+                        const option = document.createElement('option');
+                        option.value = floor.imgurl;
+                        option.textContent = `Floor ${floor.floor_number}`;
+                        floorSelect.appendChild(option);
+
+                        if (floor.floor_number === 1) {
+                            option.selected = true;
+                            renderBoundariesForCurrentFloor();
+                        }
+                    });
+                    // Add event listener after populating the dropdown
+                    floorSelect.addEventListener('change', renderBoundariesForCurrentFloor);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+        function renderBoundariesForCurrentFloor() {
+            const floorSelect = document.getElementById('floorSelect');
+            const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+            canvas.clear();
+            loadImage(floorSelect.value, () => {
+                allBoundaries.forEach(boundary => {
+                    if (boundary.floor == selectedFloor) {
+                        const rect = new fabric.Rect({
+                            left: boundary.x,
+                            top: boundary.y,
+                            width: boundary.xwidth,
+                            height: boundary.yheight,
+                            fill: 'transparent',
+                            stroke: 'red',
+                            strokeWidth: 2,
+                            selectable: true,
+                            data: { id: boundary.areaID }
+                        });
+                        canvas.add(rect);
+                    }
+                });
+                allBeacons.forEach(beacon => {
+                    if (beacon.floor == selectedFloor) {
+                        drawBeacons(beacon.x, beacon.y, beacon.major.toString(), selectedFloor);
+                    }
+                });
+                canvas.renderAll();
+            });
+        }
+        initialize();
+
+        function showBeaconModal() {
+            const modal = document.getElementById('beaconModal');
+            modal.style.display = 'block';
+        }
+        function closeBeaconModal() {
+            const modal = document.getElementById('beaconModal');
+            modal.style.display = 'none';
+        }
+        function showBeaconConfigModal() {
+            const modal = document.getElementById('beaconConfigModal');
+            modal.style.display = 'block';
+            // Get the current floor from the floor selector
+            const floorSelect = document.getElementById('floorSelect');
+            const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+
+            // Fetch the beacon configuration for the current floor
+            fetch(`/get-beacons-config?floor=${selectedFloor}`)
+                .then(response => response.json())
+                .then(config => {
+                    if (config.length > 0) {
+                        const { offset, widthInFeet, heightInFeet } = config[0];
+                        document.getElementById('offset').value = offset;
+                        document.getElementById('widthInFeet').value = widthInFeet;
+                        document.getElementById('heightInFeet').value = heightInFeet;
+                    } else {
+                        console.warn('No configuration found for this floor.');
+                    }
+                    document.getElementById('beaconConfigModal').style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching beacon configuration:', error));
+        }
+        function closeBeaconConfigModal() {
+            const modal = document.getElementById('beaconConfigModal');
+            modal.style.display = 'none';
+        }
+        document.getElementById('beaconForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const major = document.getElementById('major').value;
+                const xposition = document.getElementById('x-position').value;
+                const yposition = document.getElementById('y-position').value;
+                const floorSelect = document.getElementById('floorSelect');
+                const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+
+                drawBeacons(xposition, yposition, major.toString(), selectedFloor);
+                canvas.renderAll(); // Ensure canvas is rendered after adding the beacon
+                console.log(xposition, yposition, major.toString(), selectedFloor);
+
+                closeBeaconModal();
+                // Send beacon data to the server
+                fetch('/register-beacon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ floor: selectedFloor, major, x: xposition, y: yposition })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Beacon registered:', data);
+                })
+                .catch(error => console.error('Error registering beacon:', error));
+            });
+
+        function saveBoundaries() {
+            rectanglesData.forEach(data => {
+                fetch('/save-boundary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Boundary saved:', data);
+                })
+                .catch(error => console.error('Error saving boundary:', error));
+            });
+        }
+
+        function removeBoundary(id) {
+            fetch('/remove-boundary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Boundary removed:', data);
+            })
+            .catch(error => console.error('Error removing boundary:', error));
+        }
+
+        document.getElementById('doneButton').addEventListener('click', saveBoundaries);
+        function toggleDrawingMode() {
+            isDrawingMode = !isDrawingMode;
+            const toggleButton = document.getElementById('toggleButton');
+            const doneButton = document.getElementById('doneButton');
+
+            if (isDrawingMode) {
+                toggleButton.style.display = 'none';
+                doneButton.style.display = 'inline';
+            } else {
+                toggleButton.style.display = 'inline';
+                doneButton.style.display = 'none';
+            }
+        }
+
+        function removeSelected() {
+            const activeObject = canvas.getActiveObject();
+            if (activeObject) {
+                canvas.remove(activeObject);
+                const boundaryId = activeObject.data.id;
+                console.log('Removing boundary:', boundaryId);
+                removeBoundary(boundaryId);
+            }
+        }
+
+        document.getElementById('beaconConfigForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const offset = document.getElementById('offset').value;
+                const widthInFeet = document.getElementById('widthInFeet').value;
+                const heightInFeet = document.getElementById('heightInFeet').value;
+                const floorSelect = document.getElementById('floorSelect');
+                const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+                fetch('/update-beacons-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ floor: selectedFloor, offset, widthInFeet, heightInFeet })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Configuration updated:', data);
+                    closeBeaconConfigModal();
+                    location.reload(); // Refresh the page
+                })
+                .catch(error => console.error('Error updating configuration:', error));
+            });
+
+        function removeBeacon() {
+            document.getElementById('beaconRemovalModal').style.display = 'block';
+            const floorSelect = document.getElementById('floorSelect');
+            const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+            fetch(`/get-beacons?floor=${selectedFloor}`)
+                .then(response => response.json())
+                .then(beacons => {
+                    const beaconList = document.getElementById('beaconList');
+                    beaconList.innerHTML = ''; // Clear previous list
+
+                    beacons.forEach(beacon => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `Major ID: ${beacon.major}, X: ${beacon.x}, Y: ${beacon.y}`;
+                        const radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.name = 'beacon';
+                        radio.value = beacon.major;
+                        div.appendChild(radio);
+                        beaconList.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Error fetching beacons:', error));
+        }
+
+        function closeBeaconRemovalModal() {
+            document.getElementById('beaconRemovalModal').style.display = 'none';
+        }
+
+        function submitBeaconRemoval() {
+            const selectedBeacon = document.querySelector('input[name="beacon"]:checked');
+            if (!selectedBeacon) {
+                alert('Please select a beacon to remove.');
+                return;
+            }
+
+            const majorid = selectedBeacon.value;
+
+            // Remove the beacon from the canvas
+            const objects = canvas.getObjects();
+            objects.forEach(obj => {
+                if (obj.data && obj.data.majorid === majorid) {
+                    canvas.remove(obj);
+                }
+            });
+
+            // Send request to server to remove beacon
+            fetch('/remove-beacon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ majorid })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Beacon removed:', data);
+                closeBeaconRemovalModal();
+            })
+            .catch(error => console.error('Error removing beacon:', error));
+        }
+    </script>
+</body>
+</html>
