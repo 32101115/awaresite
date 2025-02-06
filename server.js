@@ -10,6 +10,64 @@ const awsIot = require('aws-iot-device-sdk');
 app.use(express.static('public'));
 app.use(express.json());
 
+// HTTP GET endpoint to retrieve beacon information by floor
+app.get('/floor/:floor_number/get_beacon_info', (req, res) => {
+    const { floor_number } = req.params;
+    const sql = `SELECT major, x, y FROM beacons WHERE floor = ?`;
+    db.all(sql, [floor_number], (err, rows) => {
+        if (err) {
+            console.error('Database error:', err.message);
+            res.status(500).send('Error fetching beacons');
+        } else {
+            const response = {
+                floor: floor_number,
+                beacons: rows
+            };
+            console.log('Beacons fetched:', response);
+            res.json(response);
+        }
+    });
+});
+
+
+// Function to publish beacon info to AWS IoT topic
+const publishBeaconInfo = (floorNumber) => {
+    getBeaconInfoByFloor(floorNumber, (err, rows) => {
+        if (err) {
+            console.error('Error fetching beacon info:', err.message);
+        } else {
+            const message = {
+                floor: floorNumber,
+                beacons: rows.map(beacon => ({
+                    major: beacon.major,
+                    x: beacon.x,
+                    y: beacon.y
+                }))
+            };
+            // Publish the message object as a single JSON string
+            device.publish('beacon-info-topic', JSON.stringify(message), (err) => {
+                if (err) {
+                    console.error('Error publishing message:', err);
+                } else {
+                    console.log('Beacon info published:', message);
+                }
+            });
+        }
+    });
+};
+
+const getBeaconInfoByFloor = (floorNumber, callback) => {
+    const sql = `SELECT major, x, y FROM beacons WHERE floor = ?`;
+    db.all(sql, [floorNumber], (err, rows) => {
+        if (err) {
+            console.error('Database error:', err.message);
+            callback(err, null);
+        } else {
+            callback(null, rows);
+        }
+    });
+};
+
 // Register a beacon
 app.post('/register-beacon', (req, res) => {
     const { floor, major, x, y } = req.body;
@@ -19,6 +77,7 @@ app.post('/register-beacon', (req, res) => {
             console.error(err.message);
             res.status(500).send('Error saving beacon');
         } else {
+            publishBeaconInfo(floor);
             res.json({ id: this.lastID });
         }
     });
