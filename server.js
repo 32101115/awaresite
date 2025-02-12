@@ -10,6 +10,12 @@ const awsIot = require('aws-iot-device-sdk');
 app.use(express.static('public'));
 app.use(express.json());
 
+app.post('/ppu-location', (req, res) => {
+    const data = req.body;
+    io.emit('ppuLocationUpdate', data);
+    res.status(200).send('PPU location data received');
+});
+
 // HTTP GET endpoint to retrieve beacon information by floor
 app.get('/floor/:floor_number/get_beacon_info', (req, res) => {
     const { floor_number } = req.params;
