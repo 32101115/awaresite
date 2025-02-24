@@ -20,8 +20,8 @@ db.run(`CREATE TABLE IF NOT EXISTS beacons_config (
   }
   const floor = 1;
   const offset = 13;
-  const widthInFeet = 16;
-  const heightInFeet = 22;
+  const widthInFeet = 24;
+  const heightInFeet = 34;
   const insertStmt = db.prepare('INSERT OR REPLACE INTO beacons_config (floor, offset, widthInFeet, heightInFeet) VALUES (?, ?, ?, ?)');
 
   insertStmt.run(floor, offset, widthInFeet, heightInFeet, (err) => {
@@ -47,15 +47,15 @@ db.run(`CREATE TABLE IF NOT EXISTS beacons (
     console.error(err.message);
   }
   const xycoordinate = [
-    { floor: 1, major: '308', x: 0, y: 0 },
-    { floor: 1, major: '312', x: 6, y: 0 },
-    { floor: 1, major: '322', x: 12, y: 0 },
-    { floor: 1, major: '306', x: 0, y: 12 },
-    { floor: 1, major: '323', x: 6, y: 12 },
-    { floor: 1, major: '309', x: 12, y: 12 },
-    { floor: 1, major: '310', x: 0, y: 20 },
-    { floor: 1, major: '304', x: 12, y: 20 },
-    { floor: 1, major: '320', x: 8, y: 20 },
+    { floor: 1, major: '310', x: 8, y: 8 },
+    { floor: 1, major: '320', x: 16, y: 8 },
+    { floor: 1, major: '306', x: 20, y: 8 },
+    { floor: 1, major: '304', x: 8, y: 16 },
+    { floor: 1, major: '323', x: 14, y: 16 },
+    { floor: 1, major: '309', x: 20, y: 16 },
+    { floor: 1, major: '308', x: 8, y: 28 },
+    { floor: 1, major: '312', x: 14, y: 28 },
+    { floor: 1, major: '322', x: 20, y: 28 },
   ];
 
   const insertStmt = db.prepare('INSERT OR REPLACE INTO beacons (floor, major, x, y) VALUES (?, ?, ?, ?)');
