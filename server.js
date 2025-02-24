@@ -37,30 +37,30 @@ app.get('/floor/:floor_number/get_beacon_info', (req, res) => {
 
 
 // Function to publish beacon info to AWS IoT topic
-const publishBeaconInfo = (floorNumber) => {
-    getBeaconInfoByFloor(floorNumber, (err, rows) => {
-        if (err) {
-            console.error('Error fetching beacon info:', err.message);
-        } else {
-            const message = {
-                floor: floorNumber,
-                beacons: rows.map(beacon => ({
-                    major: beacon.major,
-                    x: beacon.x,
-                    y: beacon.y
-                }))
-            };
-            // Publish the message object as a single JSON string
-            device.publish('beacon-info-topic', JSON.stringify(message), (err) => {
-                if (err) {
-                    console.error('Error publishing message:', err);
-                } else {
-                    console.log('Beacon info published:', message);
-                }
-            });
-        }
-    });
-};
+// const publishBeaconInfo = (floorNumber) => {
+//     getBeaconInfoByFloor(floorNumber, (err, rows) => {
+//         if (err) {
+//             console.error('Error fetching beacon info:', err.message);
+//         } else {
+//             const message = {
+//                 floor: floorNumber,
+//                 beacons: rows.map(beacon => ({
+//                     major: beacon.major,
+//                     x: beacon.x,
+//                     y: beacon.y
+//                 }))
+//             };
+//             // Publish the message object as a single JSON string
+//             device.publish('beacon-info-topic', JSON.stringify(message), (err) => {
+//                 if (err) {
+//                     console.error('Error publishing message:', err);
+//                 } else {
+//                     console.log('Beacon info published:', message);
+//                 }
+//             });
+//         }
+//     });
+// };
 
 const getBeaconInfoByFloor = (floorNumber, callback) => {
     const sql = `SELECT major, x, y FROM beacons WHERE floor = ?`;
@@ -232,28 +232,28 @@ io.on('connection', (socket) => {
 });
 
 // Configure your device
-const device = awsIot.device({
-    keyPath: "certificates/5dfb56c854f949a4b3a803ff3bfc955efd4f444657753d3a8e9c3529dd5100e9-private.pem.key",
-    certPath: "certificates/5dfb56c854f949a4b3a803ff3bfc955efd4f444657753d3a8e9c3529dd5100e9-certificate.pem.crt",
-    caPath: "certificates/AmazonRootCA1.pem",
-    clientId: 'aws-iot-thing',
-    host: 'ajbutgedqxt7y-ats.iot.us-east-1.amazonaws.com'
-});
+// const device = awsIot.device({
+//     keyPath: "certificates/5dfb56c854f949a4b3a803ff3bfc955efd4f444657753d3a8e9c3529dd5100e9-private.pem.key",
+//     certPath: "certificates/5dfb56c854f949a4b3a803ff3bfc955efd4f444657753d3a8e9c3529dd5100e9-certificate.pem.crt",
+//     caPath: "certificates/AmazonRootCA1.pem",
+//     clientId: 'aws-iot-thing',
+//     host: 'ajbutgedqxt7y-ats.iot.us-east-1.amazonaws.com'
+// });
 
-// Connect and subscribe to a topic
-device.on('connect', function() {
-    console.log('Connected to AWS IoT');
-    device.subscribe('ppu-location-topic');
-});
+// // Connect and subscribe to a topic
+// device.on('connect', function() {
+//     console.log('Connected to AWS IoT');
+//     device.subscribe('ppu-location-topic');
+// });
 
-// Handle incoming messages
-device.on('message', function(topic, payload) {
-    console.log('Message received:', topic, payload.toString());
-    const data = JSON.parse(payload.toString());
+// // Handle incoming messages
+// device.on('message', function(topic, payload) {
+//     console.log('Message received:', topic, payload.toString());
+//     const data = JSON.parse(payload.toString());
 
-    // Emit data to all connected clients
-    io.emit('ppuLocationUpdate', data);
-});
+//     // Emit data to all connected clients
+//     io.emit('ppuLocationUpdate', data);
+// });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
