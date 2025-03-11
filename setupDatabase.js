@@ -8,6 +8,40 @@ let db = new sqlite3.Database('./tracking.db', (err) => {
   console.log('Connected to the tracking database.');
 });
 
+// Create the 'zoneSettings' table
+db.run(`CREATE TABLE IF NOT EXISTS zoneSettings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  setting_name TEXT UNIQUE NOT NULL,
+  setting_value INTEGER NOT NULL
+)`, (err) => {
+  if (err) {
+    console.error(err.message);
+  } else {
+    console.log('Created the zoneSettings table.');
+
+    // Insert default values using a prepared statement
+    const insert = db.prepare(`INSERT OR IGNORE INTO zoneSettings (setting_name, setting_value) VALUES (?, ?)`);
+    
+    insert.run('workzoneTime', 30000, (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+        console.log('Inserted default value for workzoneTime.');
+      }
+    });
+
+    insert.run('redzoneTime', 30000, (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+        console.log('Inserted default value for redzoneTime.');
+      }
+    });
+
+    insert.finalize();
+  }
+});
+
 // Create the 'beacons_config' table
 db.run(`CREATE TABLE IF NOT EXISTS beacons_config (
   floor TEXT NOT NULL,
@@ -74,20 +108,52 @@ db.run(`CREATE TABLE IF NOT EXISTS beacons (
   console.log('Created the beacons table.');
 });
 
-// Create the 'area' table
-db.run(`CREATE TABLE IF NOT EXISTS area (
-  areaID INTEGER PRIMARY KEY AUTOINCREMENT,
+// Create the 'boundary' table
+db.run(`CREATE TABLE IF NOT EXISTS boundary (
+  boundaryID INTEGER PRIMARY KEY AUTOINCREMENT,
   floor TEXT NOT NULL,
-  yheight DOUBLE NOT NULL,
-  x DOUBLE NOT NULL,
-  y DOUBLE NOT NULL,
-  xwidth DOUBLE NOT NULL,
-  associated_workers_id TEXT NOT NULL
+  x0 DOUBLE NOT NULL,
+  x1 DOUBLE NOT NULL,
+  y0 DOUBLE NOT NULL,
+  y1 DOUBLE NOT NULL,
+  associated_ppu_id TEXT NOT NULL,
+  workzone INTEGER,
+  redzone INTEGER 
 )`, (err) => {
   if (err) {
     console.error(err.message);
   }
-  console.log('Created the area table.');
+  console.log('Created the boundary table.');
+});
+
+// Create the 'incidents' table
+db.run(`CREATE TABLE IF NOT EXISTS workzoneIncidents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ppu_id INTEGER NOT NULL,
+  duration INTEGER NOT NULL, -- Duration in seconds
+  boundary_id INTEGER NOT NULL,
+  FOREIGN KEY (boundary_id) REFERENCES boundaries(id)
+)`, (err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log('Created the workzoneIncidents table.');
+});
+
+// Create the 'incidents' table
+db.run(`CREATE TABLE IF NOT EXISTS redzoneIncidents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ppu_id INTEGER NOT NULL,
+  duration INTEGER NOT NULL, -- Duration in seconds
+  boundary_id INTEGER NOT NULL,
+  FOREIGN KEY (boundary_id) REFERENCES boundaries(id)
+)`, (err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log('Created the redzoneIncidents table.');
 });
 
 // Create the 'workers' table
@@ -96,7 +162,7 @@ db.run(`CREATE TABLE IF NOT EXISTS workers (
   name TEXT NOT NULL,
   occupation TEXT NOT NULL,
   numIncidents INTEGER NOT NULL,
-  areaID INTEGER
+  boundaryID INTEGER
 )`, (err) => {
   if (err) {
     console.error(err.message);

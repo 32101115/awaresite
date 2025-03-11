@@ -9,33 +9,33 @@
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="vendor/datatables/dataTables.bootstrap4.css" rel="stylesheet">
     <link href="css/sb-admin.css" rel="stylesheet">
-	<!-- <script src="sweetalert.min.js"></script> -->
-	 <style>
-	.fill {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		overflow: hidden;
-		margin: 10px;
-		max-width: 400px;
-		max-height: 400px;
-	}
-	.fill img {
-		flex-shrink: 0;
-		max-width:80%;
-		max-height:80%;
-	}
-	/* Tablet */
-	@media screen and (min-width: 760px) and (max-width: 980px){
-		#mapcanvas {width:400px;height:400px}
+    <!-- <script src="sweetalert.min.js"></script> -->
+     <style>
+    .fill {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        margin: 10px;
+        max-width: 400px;
+        max-height: 400px;
+    }
+    .fill img {
+        flex-shrink: 0;
+        max-width:80%;
+        max-height:80%;
+    }
+    /* Tablet */
+    @media screen and (min-width: 760px) and (max-width: 980px){
+        #mapcanvas {width:400px;height:400px}
     }
     /* Mobile HD */
     @media screen and (min-width: 350px) and (max-width: 760px){
-		#mapcanvas {width:200px;height:200px}
+        #mapcanvas {width:200px;height:200px}
     }
     /* Mobile LD */
     @media screen and (max-width: 350px){
-		#mapcanvas {width:100px;height:100px}
+        #mapcanvas {width:100px;height:100px}
     }
     .scrollabletextbox {
         width:100%;
@@ -63,6 +63,9 @@
         width: 80%;
     }
 
+    .modal_add_floor { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+    .modal_add_floor.open { display: block; }
+
     .close {
         color: #aaa;
         float: right;
@@ -76,17 +79,185 @@
         text-decoration: none;
         cursor: pointer;
     }
-	</style>
+    .flex-container {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    #boundaryInfo {
+        margin-left: 20px; /* Optional: additional spacing */
+        /* Add styles to control the size of the boundary info div */
+        width: 50%; /* Example width */
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+
+    #workZoneIncidentLog table, #redZoneIncidentLog table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    #workZoneIncidentLog th, #workZoneIncidentLog td, #redZoneIncidentLog th, #redZoneIncidentLog td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #workZoneIncidentLog th, #redZoneIncidentLog th {
+        background-color: #f2f2f2;
+        color: #333;
+    }
+
+    #workZoneIncidentLog tr:nth-child(even), #redZoneIncidentLog tr:nth-child(even)  {
+        background-color: #f9f9f9;
+    }
+
+    #workZoneIncidentLog tr:hover, #redZoneIncidentLog tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    #workZoneIncidentLog th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    #redZoneIncidentLog th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        background-color: #eb3143;
+        color: white;
+    }
+    </style>
 </head>
 <body id="page-top">
     <nav class="navbar navbar-expand navbar-dark bg-dark static-top">
         <a class="navbar-brand mr-1" href="#">Jobsite Inspector</a>
     </nav>
     <div id="wrapper">
+        <!-- Work Boundary Registration Modal -->
+        <div id="workBoundaryModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('workBoundaryModal')">&times;</span>
+                <h2>Add Work Zone</h2>
+                <h5>Zone Calculation</h5>
+                <p>left: x0,
+                    top: y0,
+                    width: x1 - x0,
+                    height: y1 - y0</p>
+                <form id="boundaryForm" onsubmit="submitWorkBoundaryForm(event)">
+                    <label for="work_x_0">x_0 in ft:</label>
+                    <input type="number" id="work_x_0" name="work_x_0" required><br><br>
+                    <label for="work_x_1">x_1 in ft:</label>
+                    <input type="number" id="work_x_1" name="work_x_1" required><br><br>
+                    <label for="work_y_0">y_0 in ft:</label>
+                    <input type="number" id="work_y_0" name="work_y_0" required><br><br>
+                    <label for="work_y_1">y_1 in ft:</label>
+                    <input type="number" id="work_y_1" name="work_y_1" required><br><br>
+                    <label for="workzone_associated_ppu_id">Associated ppu ids: (When multiple, separated by comma)</label>
+                    <input type="text" id="workzone_associated_ppu_id" name="workzone_associated_ppu_id"><br><br>
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="redBoundaryModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('redBoundaryModal')">&times;</span>
+                <h2>Add Red Zone</h2>
+                <h5>Zone Calculation</h5>
+                <p>left: x0,
+                    top: y0,
+                    width: x1 - x0,
+                    height: y1 - y0</p>
+                <form id="boundaryForm" onsubmit="submitRedBoundaryForm(event)">
+                    <label for="red_x_0">x_0 in ft:</label>
+                    <input type="number" id="red_x_0" name="red_x_0" required><br><br>
+                    <label for="red_x_1">x_1 in ft:</label>
+                    <input type="number" id="red_x_1" name="red_x_1" required><br><br>
+                    <label for="red_y_0">y_0 in ft:</label>
+                    <input type="number" id="red_y_0" name="red_y_0" required><br><br>
+                    <label for="red_y_1">y_1 in ft:</label>
+                    <input type="number" id="red_y_1" name="red_y_1" required><br><br>
+                    <label for="redzone_associated_ppu_id">Associated ppu ids: (When multiple, separated by comma)</label>
+                    <input type="text" id="redzone_associated_ppu_id" name="redzone_associated_ppu_id"><br><br>
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="settingZoneModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('settingZoneModal')">&times;</span>
+                <form id="settingZoneForm" onsubmit="updateSetting(event)">
+                    <label for="workzoneTime">Work Zone Time (ms):</label>
+                    <input type="number" id="workzoneTime" name="workzoneTime" required><br><br>
+                    <label for="redzoneTime">Red Zone Time (ms):</label>
+                    <input type="number" id="redzoneTime" name="redzoneTime" required><br><br>
+                    <button type="submit">Update Settings</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add floor Modal -->
+        <div id="addFloor" class="modal" style="display:none;">
+            <div class="modal-content">
+            <form id="uploadForm">
+            <span class="close" onclick="closeModal('addFloor')">&times;</span>
+              <div id="inputsContainer">
+                <div class="inputGroup">
+                  <input type="text" name="floor" placeholder="Floor" readonly>
+                  <input type="text" name="major" placeholder="Major">
+                  <input type="number" name="x" placeholder="Width (ft)">
+                  <input type="number" name="y" placeholder="Height (ft)">
+                  <input type="number" name="offset" value="13" placeholder="Offset">
+                  <button type="button" onclick="removeInput(this)">-</button>
+                </div>
+              </div>
+              <button type="button" onclick="addInput()">+</button>
+              <button type="submit">Submit</button>
+            </form>
+            </div>
+        </div>
+
+
+        <!-- Boundary PPU Modal -->
+        <div id="workBoundaryPPUModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('workBoundaryPPUModal')">&times;</span>
+                <h2>Add PPU to Work Zone</h2>
+                <form id="boundaryForm" onsubmit="submitWorkZonePPUForm(event)">
+                    <label for="work_ppu_id">PPU ID (When multiple, separated by comma):</label>
+                    <input type="text" id="work_ppu_id" name="work_ppu_id" required><br><br>
+                    <label for="work_boundary_id">Boundary ID:</label>
+                    <input type="text" id="work_boundary_id" name="work_boundary_id" required><br><br>
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="redBoundaryPPUModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('redBoundaryPPUModal')">&times;</span>
+                <h2>Add PPU to Red Zone</h2>
+                <form id="boundaryForm" onsubmit="submitRedZonePPUForm(event)">
+                    <label for="red_ppu_id">PPU ID (When multiple, separated by comma):</label>
+                    <input type="text" id="red_ppu_id" name="red_ppu_id" required><br><br>
+                    <label for="red_boundary_id">Boundary ID:</label>
+                    <input type="text" id="red_boundary_id" name="red_boundary_id" required><br><br>
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Beacon Registration Modal -->
         <div id="beaconModal" class="modal" style="display:none;">
             <div class="modal-content">
-                <span class="close" onclick="closeBeaconModal()">&times;</span>
+                <span class="close" onclick="closeModal('beaconModal')">&times;</span>
                 <h2>Register Beacon</h2>
                 <form id="beaconForm">
                     <label for="major">Major:</label>
@@ -103,7 +274,7 @@
         <!-- Beacon Config Modal -->
         <div id="beaconConfigModal" class="modal" style="display:none;">
             <div class="modal-content">
-                <span class="close" onclick="closeBeaconConfigModal()">&times;</span>
+                <span class="close" onclick="closeModal('beaconConfigModal')">&times;</span>
                 <h2>Beacon Configuration</h2>
                 <form id="beaconConfigForm">
                     <label for="offset">Offset:</label>
@@ -117,13 +288,25 @@
             </div>
         </div>
 
+
+
         <!-- Beacon Removal Modal -->
         <div id="beaconRemovalModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <span class="close" onclick="closeBeaconRemovalModal()">&times;</span>
+                <span class="close" onclick="closeModal('beaconRemovalModal')">&times;</span>
                 <h2>Select a Beacon to Remove</h2>
                 <div id="beaconList"></div>
                 <button class="btn btn-danger" onclick="submitBeaconRemoval()">Remove Selected Beacon</button>
+            </div>
+        </div>
+
+        <!-- PPU ID Removal Modal -->
+        <div id="ppuRemovalModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('ppuRemovalModal')">&times;</span>
+                <h2>Select a PPU ID to Remove</h2>
+                <div id="ppuList"></div>
+                <button class="btn btn-danger" onclick="submitPPURemoval()">Remove Selected PPU ID</button>
             </div>
         </div>
         <!-- Sidebar -->
@@ -155,13 +338,63 @@
                         <select id="floorSelect" class="form-control mb-3">
                             <option value="">Select a floor</option>
                         </select>
-                        <button class="btn btn-primary" id="toggleButton" onclick="toggleDrawingMode()">Add Boundary</button>
-                        <button class="btn btn-danger" id="doneButton" onclick="toggleDrawingMode()" style="display: none;">Done</button>
-                        <button class="btn btn-secondary" onclick="removeSelected()">Remove Selected Boundary</button>
-                        <button class="btn btn-info" id="placeBeaconButton" onclick="showBeaconModal()">Place Beacon</button>
-                        <button class="btn btn-secondary" onclick="removeBeacon()">Remove Beacon</button>
-                        <button class="btn btn-info" id="configBeaconButton" onclick="showBeaconConfigModal()">Beacon Configuration</button>
-                        <canvas id="canvas" width="460" height="627" style="border:1px solid #ccc;"></canvas>
+
+                        <button class="btn btn-primary" id="toggleButton" onclick="showModal('settingZoneModal')">Incident Time Set</button>
+
+                        <button class="btn btn-success" id="toggleButton" onclick="showModal('workBoundaryModal')">Add Work Zone</button>
+                        <button class="btn btn-danger" id="toggleButton" onclick="showModal('redBoundaryModal')">Add Red Zone</button>
+                        <button class="btn btn-info" onclick="removeSelected()">Remove Selected Zone</button>
+                        <br>
+
+                        <button class="btn btn-success" id="toggleButton" onclick="showModal('workBoundaryPPUModal')">Add PPU ID to Work Zone</button>
+                        <button class="btn btn-danger" id="toggleButton" onclick="showModal('redBoundaryPPUModal')">Add PPU ID to Red Zone</button>
+                        <button class="btn btn-info" id="toggleButton" onclick="removePPU()">Remove PPU ID From Zone</button>
+                        <br><br>
+
+                        <button class="btn btn-secondary" id="placeBeaconButton" onclick="showModal('beaconModal')">Place Beacon</button>
+                        <button class="btn btn-info" onclick="removeBeacon()">Remove Beacon</button>
+                        <button class="btn btn-secondary" id="configBeaconButton" onclick="showBeaconConfigModal()">Beacon Configuration</button>
+                        <button class="btn btn-info" id="uploadBtn">Upload Image</button>
+                        <!-- Flex container for canvas and boundary info -->
+                        <div class="flex-container">
+                            <canvas id="canvas" width="460" height="627" style="border:1px solid #ccc;"></canvas>
+                            <div id="boundaryInfo">Boundary Information</div>
+                        </div>
+                        <br>
+                        <div id="workZoneIncidentLog">
+                           <h2>Work Zone Incident Log</h2>
+                           <table>
+                               <thead>
+                                   <tr>
+                                       <th>Timestamp</th>
+                                       <th>PPU ID</th>
+                                       <th>Duration (s)</th>
+                                       <th>Boundary ID</th>
+                                       <th>Action</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="workZoneIncidentTableBody">
+                                   <!-- Rows will be populated dynamically -->
+                               </tbody>
+                           </table>
+                       </div>
+                       <div id="redZoneIncidentLog">
+                           <h2>Red Zone Incident Log</h2>
+                           <table>
+                               <thead>
+                                   <tr>
+                                       <th>Timestamp</th>
+                                       <th>PPU ID</th>
+                                       <th>Duration (s)</th>
+                                       <th>Boundary ID</th>
+                                       <th>Action</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="redZoneIncidentTableBody">
+                                   <!-- Rows will be populated dynamically -->
+                               </tbody>
+                           </table>
+                       </div>
                     </div>
                 </div>
             </div>
@@ -198,6 +431,374 @@
         const canvasWidthInPixels = canvas.getWidth();
         const canvasHeightInPixels = canvas.getHeight();
 
+        const uploadBtn = document.getElementById('uploadBtn');
+        const inputsContainer = document.getElementById('inputsContainer');
+        let workzoneTime,redzoneTime;
+        const redZoneBoundaries = new Map();
+        const workZoneBoundaries = new Map();
+        const ppuWorkzoneStatus = new Map(); // Map to track workzone status
+        const ppuRedzoneStatus = new Map(); // Map to track redzone status
+
+        function updateSetting(event) {
+            event.preventDefault(); // Prevent default form submission
+            const workzoneTime = document.getElementById('workzoneTime').value;
+            const redzoneTime = document.getElementById('redzoneTime').value;
+            const settings = [
+                { name: 'workzoneTime', value: parseInt(workzoneTime) },
+                { name: 'redzoneTime', value: parseInt(redzoneTime) }
+            ];
+
+            fetch('/settings', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Settings updated successfully');
+                    location.reload(); // Refresh the page
+                } else {
+                    alert('Error updating settings');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function getRedZoneBoundaryIdForPPU(ppu_id) {
+            for (const [boundaryId, boundary] of redZoneBoundaries.entries()) {
+                if (boundary.associatedPPUs.includes(ppu_id)) {
+                    return boundaryId;
+                }
+            }
+            return null; // Return null if no matching boundaryId is found
+        }
+        // Fetch all red zone boundaries from the server once
+        async function fetchRedZoneBoundaries() {
+            try {
+                const response = await fetch('/api/redzones'); // Endpoint to get all red zones
+                const data = await response.json();
+                data.forEach(zone => {
+                    redZoneBoundaries.set(zone.id, {
+                        x0: zone.x0,
+                        x1: zone.x1,
+                        y0: zone.y0,
+                        y1: zone.y1,
+                        associatedPPUs: zone.associated_ppu_ids
+                    });
+                });
+            } catch (error) {
+                console.error('Error fetching red zone boundaries:', error);
+            }
+        }
+        function checkIfPPUInUnauthorizedRedZone(ppuId, x, y) {
+            for (const [zoneId, boundary] of redZoneBoundaries.entries()) {
+                if (isWithinBoundary(x, y, boundary)) {
+                    if (!boundary.associatedPPUs.includes(ppuId.toString())) {
+                        return zoneId; // Inside red zone but not associated
+                    }
+                }
+            }
+            return null; // Not inside any unauthorized red zone
+        }
+        async function checkRedzoneLocation(ppuId, x, y) {
+            if (redZoneBoundaries.size === 0) {
+                await fetchRedZoneBoundaries(); // Ensure boundaries are loaded
+            }
+            const result = checkIfPPUInUnauthorizedRedZone(ppuId, x, y);
+            if (result) {
+                console.log('PPU is inside an unauthorized red zone.');
+                return result
+            } else {
+                console.log('PPU is either not in a red zone or is authorized.');
+                return false
+            }
+        }
+
+
+        function getWorkZoneBoundaryIdForPPU(ppu_id) {
+            for (const [boundaryId, boundary] of workZoneBoundaries.entries()) {
+                if (boundary.associatedPPUs.includes(ppu_id)) {
+                    return boundaryId;
+                }
+            }
+            return null; // Return null if no matching boundaryId is found
+        }
+        async function fetchWorkZoneBoundaries() {
+            try {
+                const response = await fetch('/api/workzones'); // Endpoint to get all red zones
+                const data = await response.json();
+                data.forEach(zone => {
+                    workZoneBoundaries.set(zone.id, {
+                        x0: zone.x0,
+                        x1: zone.x1,
+                        y0: zone.y0,
+                        y1: zone.y1,
+                        associatedPPUs: zone.associated_ppu_ids
+                    });
+                });
+            } catch (error) {
+                console.error('Error fetching red zone boundaries:', error);
+            }
+        }
+        function checkIfPPUInWorkZone(ppuId, x, y) {
+            for (const [zoneId, boundary] of workZoneBoundaries.entries()) {
+                if (!isWithinBoundary(x, y, boundary)) {
+                    if (boundary.associatedPPUs.includes(ppuId.toString())) {
+                        return zoneId; // Outside work zone
+                    }
+                }
+            }
+            return null; // inside of work zone or not associated ppu id
+        }
+        async function checkWorkzoneLocation(ppuId, x, y) {
+            if (workZoneBoundaries.size === 0) {
+                await fetchWorkZoneBoundaries(); // Ensure boundaries are loaded
+            }
+            const result = checkIfPPUInWorkZone(ppuId, x, y);
+            if (result) {
+                console.log('PPU is outside of work zone.');
+                return result
+            } else {
+                console.log('PPU is inside of a work zone. or not associated with work zone');
+                return false
+            }
+        }
+
+        function getBoundaryIdForPPU(ppuId, zoneType) {
+            return fetch(`/api/boundary/${ppuId}/${zoneType}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.boundaryID !== null) {
+                        return data.boundaryID;
+                    } else {
+                        console.warn(`No boundary ID found for PPU ID: ${ppuId}`);
+                        return null;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching boundary ID:', error);
+                    return null;
+                });
+        }
+        async function updatePPULocation({ ppu_id, pos }) {
+            const { x, y } = pos;
+            // Process workzone logic
+            const isOutsideWorkzone = await checkWorkzoneLocation(ppu_id, x, y);
+            if (isOutsideWorkzone) {
+                const currentTime = new Date().toISOString();
+                console.log(`[${currentTime}] ppu_id: ${ppu_id} is outside of the work zone`);
+                if (!ppuWorkzoneStatus.has(ppu_id)) {
+                    ppuWorkzoneStatus.set(ppu_id, { startTime: Date.now(), outside: true });
+                } else {
+                    const status = ppuWorkzoneStatus.get(ppu_id);
+                    if (status.outside && (Date.now() - status.startTime) > workzoneTime) {
+                        const duration = Math.floor((Date.now() - status.startTime) / 1000); // Convert to seconds
+                        workzoneLogIncident(ppu_id, duration, isOutsideWorkzone);
+                        fetchIncidents();
+                        ppuWorkzoneStatus.set(ppu_id, { startTime: Date.now(), outside: false });
+                    }
+                }
+            } else {
+                console.log(`[${new Date().toISOString()}] ppu_id: ${ppu_id} is back inside the work zone`);
+                ppuWorkzoneStatus.delete(ppu_id); // Reset if back inside
+            }
+            // Process redzone logic
+            const isInsideRedzone = await checkRedzoneLocation(ppu_id, x, y);
+            if (isInsideRedzone) {
+                const currentTime = new Date().toISOString();
+                console.log(`[${currentTime}] ppu_id: ${ppu_id} is inside of the red zone`);
+                if (!ppuRedzoneStatus.has(ppu_id)) {
+                    ppuRedzoneStatus.set(ppu_id, { startTime: Date.now(), insideRedzone: true });
+                } else {
+                    const redzoneStatus = ppuRedzoneStatus.get(ppu_id);
+                    if (redzoneStatus.insideRedzone && (Date.now() - redzoneStatus.startTime) > redzoneTime) {
+                        const duration = Math.floor((Date.now() - redzoneStatus.startTime) / 1000); // Convert to seconds
+                        redzoneLogIncident(ppu_id, duration, isInsideRedzone);
+                        fetchIncidents();
+                        ppuRedzoneStatus.set(ppu_id, { startTime: Date.now(), insideRedzone: false });
+                    }
+                }
+            } else {
+                console.log(`[${new Date().toISOString()}] ppu_id: ${ppu_id} is back outside the red zone or is authorized.`);
+                ppuRedzoneStatus.delete(ppu_id); // Reset if not in redzone
+            }
+        }
+        function isWithinBoundary(x, y, boundary) {
+            const { x0, x1, y0, y1 } = boundary;
+            return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+        }
+
+        function workzoneLogIncident(ppuId, duration, boundaryId) {
+            fetch('/workzone-log-incident', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ppuId, duration, boundaryId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(`Workzone incident logged successfully with ID: ${data.id}`);
+                } else {
+                    console.error('Failed to log incident:', data.error);
+                }
+            })
+            .catch(error => console.error('Error logging incident:', error));
+        }
+
+        function redzoneLogIncident(ppuId, duration, boundaryId) {
+            fetch('/redzone-log-incident', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ppuId, duration, boundaryId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(`Redzone incident logged successfully with ID: ${data.id}`);
+                } else {
+                    console.error('Failed to log redzone incident:', data.error);
+                }
+            })
+            .catch(error => console.error('Error logging redzone incident:', error));
+        }
+
+        function fetchIncidents() {
+            fetch('/workzoneIncidents')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(workzoneIncidents => {
+                    const tableBody = document.getElementById('workZoneIncidentTableBody');
+                    tableBody.innerHTML = ''; // Clear existing rows
+
+                    workzoneIncidents.forEach(workzoneIncidents => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', workzoneIncidents.id);
+                        row.innerHTML = `
+                            <td>${new Date(workzoneIncidents.timestamp).toLocaleString()}</td>
+                            <td>${workzoneIncidents.ppu_id}</td>
+                            <td>${workzoneIncidents.duration}</td>
+                            <td>${workzoneIncidents.boundary_id}</td>
+                            <td><button onclick="deleteIncident(${workzoneIncidents.id}, 'workZoneIncidentTableBody')">❌</button></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching workzoneIncidents:', error);
+                });
+            fetch('/redzoneIncidents')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(redzoneIncidents => {
+                    const tableBody = document.getElementById('redZoneIncidentTableBody');
+                    tableBody.innerHTML = ''; // Clear existing rows
+
+                    redzoneIncidents.forEach(redzoneIncidents => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', redzoneIncidents.id);
+                        row.innerHTML = `
+                            <td>${new Date(redzoneIncidents.timestamp).toLocaleString()}</td>
+                            <td>${redzoneIncidents.ppu_id}</td>
+                            <td>${redzoneIncidents.duration}</td>
+                            <td>${redzoneIncidents.boundary_id}</td>
+                            <td><button onclick="deleteIncident(${redzoneIncidents.id}, 'redZoneIncidentTableBody')">❌</button></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching redzoneIncidents:', error);
+                });
+        }
+
+        function deleteIncident(incidentId, tableBodyId) {
+            fetch(`/deleteIncident/${incidentId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the row from the table
+                    const tableBody = document.getElementById(tableBodyId);
+                    const rowToDelete = document.querySelector(`#${tableBodyId} tr[data-id='${incidentId}']`);
+                    if (rowToDelete) {
+                        tableBody.removeChild(rowToDelete);
+                    }
+                }
+            })
+            .catch(error => console.error('Error deleting incident:', error));
+        }
+
+        uploadBtn.onclick = async () => {
+            const response = await fetch('/get-next-floor-number');
+            const { nextFloorNumber } = await response.json();
+            document.querySelector('input[name="floor"]').value = `Floor ${nextFloorNumber}`;
+            document.getElementById('addFloor').style.display = 'block';
+        };
+        function addInput() {
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'inputGroup';
+            inputGroup.innerHTML = `
+                <input type="text" name="major" placeholder="Major">
+                <input type="number" name="x" placeholder="Width (ft)">
+                <input type="number" name="y" placeholder="Height (ft)">
+                <button type="button" onclick="removeInput(this)">-</button>
+            `;
+            inputsContainer.appendChild(inputGroup);
+        }
+        function removeInput(button) {
+            button.parentElement.remove();
+        }
+        document.getElementById('uploadForm').onsubmit = async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(event.target); // Collect all form inputs including files
+
+            // Create a map to organize data by floor
+            const floorDataMap = new Map();
+
+            inputsContainer.querySelectorAll('.inputGroup').forEach(group => {
+                const floor = group.querySelector('input[name="floor"]').value;
+                const major = group.querySelector('input[name="major"]').value;
+                const x = group.querySelector('input[name="x"]').value;
+                const y = group.querySelector('input[name="y"]').value;
+                const offset = group.querySelector('input[name="offset"]').value;
+
+                // Initialize data structure for a new floor
+                if (!floorDataMap.has(floor)) {
+                    floorDataMap.set(floor, { offset, points: [] });
+                }
+
+                // Push the major, x, and y values for this floor
+                floorDataMap.get(floor).points.push({ major, x, y });
+            });
+
+            // Convert the map to an array of objects
+            const data = Array.from(floorDataMap, ([floor, { offset, points }]) => ({
+                floor, offset, points
+            }));
+
+            // Since we're not uploading files, we can use JSON
+            await fetch('/save-floor-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            modal.classList.remove('open');
+        };
+
         // Function to get a random color
         function getRandomColor() {
             const letters = '0123456789ABCDEF';
@@ -210,6 +811,7 @@
 
         socket.on('ppuLocationUpdate', function(data) {
             drawPPU(data);
+            updatePPULocation(data)
         });
 
         function convertToPixels(x, y, offset, widthInFeet, heightInFeet, canvasWidthInPixels, canvasHeightInPixels) {
@@ -312,7 +914,8 @@
             return Promise.all([
                 fetch('/floors').then(response => response.json()),
                 fetch('/boundaries').then(response => response.json()),
-                fetch('/beacons').then(response => response.json())
+                fetch('/beacons').then(response => response.json()),
+                fetch('/settings').then(response => response.json())
             ]);
         }
         function fetchBeaconsConfig() {
@@ -331,7 +934,7 @@
                 .then(() => {
                     return fetchData(); // Ensure fetchData returns a Promise
                 })
-                .then(([floors, boundaries, beacons]) => {
+                .then(([floors, boundaries, beacons, settings]) => {
                     allBoundaries = boundaries;
                     allBeacons = beacons;
                     const floorSelect = document.getElementById('floorSelect');
@@ -348,9 +951,20 @@
                     });
                     // Add event listener after populating the dropdown
                     floorSelect.addEventListener('change', renderBoundariesForCurrentFloor);
+
+                    // Process settings data
+                    settings.forEach(setting => {
+                        if (setting.setting_name === 'workzoneTime') {
+                            workzoneTime = setting.setting_value;
+                        } else if (setting.setting_name === 'redzoneTime') {
+                            redzoneTime = setting.setting_value;
+                        }
+                        document.getElementById(setting.setting_name).value = setting.setting_value;
+                    });
                 })
                 .catch(error => console.error('Error fetching data:', error));
         }
+
         function renderBoundariesForCurrentFloor() {
             const floorSelect = document.getElementById('floorSelect');
             const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
@@ -358,18 +972,45 @@
             loadImage(floorSelect.value, () => {
                 allBoundaries.forEach(boundary => {
                     if (boundary.floor == selectedFloor) {
+                        const { offset, widthInFeet, heightInFeet } = beaconsConfig[selectedFloor] || {};
+                        const { pixelX: x0, pixelY: y0 } = convertToPixels(boundary.x0, boundary.y0, 0, widthInFeet, heightInFeet, canvas.width, canvas.height);
+                        const { pixelX: x1, pixelY: y1 } = convertToPixels(boundary.x1, boundary.y1, 0, widthInFeet, heightInFeet, canvas.width, canvas.height);
+
+                        // Determine the stroke color based on workzone and redzone
+                        let strokeColor = 'green'; // Default color
+                        if (boundary.redzone === 1) {
+                            strokeColor = 'red';
+                        } else if (boundary.workzone === 1) {
+                            strokeColor = 'green';
+                        }
+
                         const rect = new fabric.Rect({
-                            left: boundary.x,
-                            top: boundary.y,
-                            width: boundary.xwidth,
-                            height: boundary.yheight,
+                            left: x0,
+                            top: y0,
+                            width: x1 - x0,
+                            height: y1 - y0,
                             fill: 'transparent',
-                            stroke: 'red',
+                            stroke: strokeColor,
                             strokeWidth: 2,
                             selectable: true,
-                            data: { id: boundary.areaID }
+                            data: { id: boundary.boundaryID }
                         });
-                        canvas.add(rect);
+
+                        const text = new fabric.Text(boundary.boundaryID.toString(), {
+                            left: (x0 + x1) / 2, // Center the text
+                            top: (y0 + y1) / 2,  // Center the text
+                            fontSize: 24,
+                            originX: 'center',
+                            originY: 'center',
+                            fill: 'blue',
+                            selectable: false,
+                        });
+
+                        canvas.add(rect, text);
+
+                        // Display boundary ID and associated PPUs
+                        const infoDiv = document.getElementById('boundaryInfo');
+                        infoDiv.innerHTML += `<p>Boundary ID: ${boundary.boundaryID}, Associated PPUs: ${boundary.associated_ppu_id}</p>`;
                     }
                 });
                 allBeacons.forEach(beacon => {
@@ -377,18 +1018,150 @@
                         drawBeacons(beacon.x, beacon.y, beacon.major.toString(), selectedFloor);
                     }
                 });
+                fetchIncidents();
+                fetchRedZoneBoundaries();
+                fetchWorkZoneBoundaries();
                 canvas.renderAll();
             });
         }
         initialize();
 
-        function showBeaconModal() {
-            const modal = document.getElementById('beaconModal');
-            modal.style.display = 'block';
+        function showModal(modal_id) {
+            document.getElementById(modal_id).style.display = 'block';
         }
-        function closeBeaconModal() {
-            const modal = document.getElementById('beaconModal');
-            modal.style.display = 'none';
+        function closeModal(modal_id) {
+            document.getElementById(modal_id).style.display = 'none';
+        }
+        function submitWorkZonePPUForm(event) {
+            event.preventDefault(); // Prevent default form submission
+            const ppuIds = document.getElementById('work_ppu_id').value;
+            const boundaryId = document.getElementById('work_boundary_id').value;
+            const data = {
+                ppu_ids: ppuIds,
+                boundary_id: parseInt(boundaryId, 10),
+                workzone: 1
+            };
+            fetch('/add-ppu-to-workzone-boundary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                closeModal('workBoundaryPPUModal');
+                location.reload(); // Refresh the page
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+        function submitRedZonePPUForm(event) {
+            event.preventDefault(); // Prevent default form submission
+            const ppuIds = document.getElementById('red_ppu_id').value;
+            const boundaryId = document.getElementById('red_boundary_id').value;
+            const data = {
+                ppu_ids: ppuIds,
+                boundary_id: parseInt(boundaryId, 10),
+                redzone: 1
+            };
+            fetch('/add-ppu-to-redzone-boundary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                closeModal('redBoundaryPPUModal');
+                location.reload(); // Refresh the page
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+        // Function to handle form submission
+        function submitWorkBoundaryForm(event) {
+            event.preventDefault(); // Prevent default form submission
+            const floorSelect = document.getElementById('floorSelect');
+            const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+
+            const x0 = document.getElementById('work_x_0').value;
+            const x1 = document.getElementById('work_x_1').value;
+            const y0 = document.getElementById('work_y_0').value;
+            const y1 = document.getElementById('work_y_1').value;
+            const associatedPpuId = document.getElementById('workzone_associated_ppu_id' ).value;
+
+            // Prepare data to send to the backend
+            const boundaryData = {
+                floor: selectedFloor,
+                x0: parseFloat(x0),
+                x1: parseFloat(x1),
+                y0: parseFloat(y0),
+                y1: parseFloat(y1),
+                associated_ppu_id: associatedPpuId,
+                workzone: 1
+            };
+            // Send data to the backend
+            fetch('/add-boundary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(boundaryData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                closeModal('workBoundaryModal');
+                location.reload(); // Refresh the page
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+        function submitRedBoundaryForm(event) {
+            event.preventDefault(); // Prevent default form submission
+            const floorSelect = document.getElementById('floorSelect');
+            const selectedFloor = parseInt(floorSelect.selectedOptions[0].textContent.split(' ')[1], 10);
+
+            const x0 = document.getElementById('red_x_0').value;
+            const x1 = document.getElementById('red_x_1').value;
+            const y0 = document.getElementById('red_y_0').value;
+            const y1 = document.getElementById('red_y_1').value;
+            const associatedPpuId = document.getElementById('redzone_associated_ppu_id' ).value;
+
+            // Prepare data to send to the backend
+            const boundaryData = {
+                floor: selectedFloor,
+                x0: parseFloat(x0),
+                x1: parseFloat(x1),
+                y0: parseFloat(y0),
+                y1: parseFloat(y1),
+                associated_ppu_id: associatedPpuId,
+                redzone: 1
+            };
+            // Send data to the backend
+            fetch('/add-boundary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(boundaryData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                closeModal('redBoundaryModal');
+                location.reload(); // Refresh the page
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
         }
         function showBeaconConfigModal() {
             const modal = document.getElementById('beaconConfigModal');
@@ -413,10 +1186,7 @@
                 })
                 .catch(error => console.error('Error fetching beacon configuration:', error));
         }
-        function closeBeaconConfigModal() {
-            const modal = document.getElementById('beaconConfigModal');
-            modal.style.display = 'none';
-        }
+        
         document.getElementById('beaconForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 const major = document.getElementById('major').value;
@@ -428,8 +1198,8 @@
                 drawBeacons(xposition, yposition, major.toString(), selectedFloor);
                 canvas.renderAll(); // Ensure canvas is rendered after adding the beacon
                 console.log(xposition, yposition, major.toString(), selectedFloor);
+                closeModal('beaconModal');
 
-                closeBeaconModal();
                 // Send beacon data to the server
                 fetch('/register-beacon', {
                     method: 'POST',
@@ -467,32 +1237,20 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Boundary removed:', data);
+                location.reload(); // Refresh the page
             })
             .catch(error => console.error('Error removing boundary:', error));
         }
 
-        document.getElementById('doneButton').addEventListener('click', saveBoundaries);
-        function toggleDrawingMode() {
-            isDrawingMode = !isDrawingMode;
-            const toggleButton = document.getElementById('toggleButton');
-            const doneButton = document.getElementById('doneButton');
-
-            if (isDrawingMode) {
-                toggleButton.style.display = 'none';
-                doneButton.style.display = 'inline';
-            } else {
-                toggleButton.style.display = 'inline';
-                doneButton.style.display = 'none';
-            }
-        }
 
         function removeSelected() {
             const activeObject = canvas.getActiveObject();
             if (activeObject) {
                 canvas.remove(activeObject);
                 const boundaryId = activeObject.data.id;
-                console.log('Removing boundary:', boundaryId);
                 removeBoundary(boundaryId);
+            } else {
+                alert("Please select boundary you want to remove");
             }
         }
 
@@ -511,7 +1269,7 @@
                 .then(response => response.json())
                 .then(data => {
                     console.log('Configuration updated:', data);
-                    closeBeaconConfigModal();
+                    closeModal('beaconConfigModal');
                     location.reload(); // Refresh the page
                 })
                 .catch(error => console.error('Error updating configuration:', error));
@@ -526,7 +1284,6 @@
                 .then(beacons => {
                     const beaconList = document.getElementById('beaconList');
                     beaconList.innerHTML = ''; // Clear previous list
-
                     beacons.forEach(beacon => {
                         const div = document.createElement('div');
                         div.innerHTML = `Major ID: ${beacon.major}, X: ${beacon.x}, Y: ${beacon.y}`;
@@ -541,19 +1298,13 @@
                 .catch(error => console.error('Error fetching beacons:', error));
         }
 
-        function closeBeaconRemovalModal() {
-            document.getElementById('beaconRemovalModal').style.display = 'none';
-        }
-
         function submitBeaconRemoval() {
             const selectedBeacon = document.querySelector('input[name="beacon"]:checked');
             if (!selectedBeacon) {
                 alert('Please select a beacon to remove.');
                 return;
             }
-
             const majorid = selectedBeacon.value;
-
             // Remove the beacon from the canvas
             const objects = canvas.getObjects();
             objects.forEach(obj => {
@@ -562,7 +1313,6 @@
                 }
             });
 
-            // Send request to server to remove beacon
             fetch('/remove-beacon', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -571,9 +1321,66 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Beacon removed:', data);
-                closeBeaconRemovalModal();
+                closeModal('beaconRemovalModal');
             })
             .catch(error => console.error('Error removing beacon:', error));
+        }
+        function removePPU() {
+            document.getElementById('ppuRemovalModal').style.display = 'block';
+
+            // Fetch all boundaries
+            fetch('/boundaries')
+                .then(response => response.json())
+                .then(boundaries => {
+                    const ppuList = document.getElementById('ppuList');
+                    ppuList.innerHTML = ''; // Clear previous list
+
+                    boundaries.forEach(boundary => {
+                        if (boundary.associated_ppu_id) {
+                            // Split the associated PPU IDs into an array
+                            const ppuIds = boundary.associated_ppu_id.split(',');
+
+                            // Create a list of all PPU IDs with their boundary IDs
+                            ppuIds.forEach(ppuId => {
+                                const div = document.createElement('div');
+                                div.innerHTML = `Boundary ID: ${boundary.boundaryID}, PPU ID: ${ppuId}`;
+                                const radio = document.createElement('input');
+                                radio.type = 'radio';
+                                radio.name = 'ppu';
+                                radio.value = ppuId;
+                                radio.dataset.boundaryId = boundary.boundaryID; // Store boundary ID in data attribute
+                                div.appendChild(radio);
+                                ppuList.appendChild(div);
+                            });
+                        }
+                    });
+                })
+                .catch(error => console.error('Error fetching boundaries:', error));
+        }
+
+        function submitPPURemoval() {
+            const selectedPPU = document.querySelector('input[name="ppu"]:checked');
+            if (!selectedPPU) {
+                alert('Please select a PPU ID to remove.');
+                return;
+            }
+            fetch('/remove-ppu-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    boundaryId: selectedPPU.dataset.boundaryId,
+                    ppuId: selectedPPU.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('PPU ID removed successfully:', data);
+                closeModal('ppuRemovalModal');
+                location.reload(); // Refresh the page
+            })
+            .catch(error => console.error('Error removing PPU ID:', error));
         }
     </script>
 </body>
